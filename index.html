@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plant Disease Detector</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a5f2a 0%, #2d7a3f 50%, #1a5f2a 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #1a5f2a;
+            margin-bottom: 10px;
+            font-size: 2rem;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 0.95rem;
+        }
+
+        .upload-area {
+            border: 3px dashed #4CAF50;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f9f9f9;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-area:hover {
+            background: #e8f5e9;
+            border-color: #2e7d32;
+        }
+
+        .upload-area.dragover {
+            background: #c8e6c9;
+            border-color: #1b5e20;
+        }
+
+        .upload-icon {
+            font-size: 60px;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .upload-hint {
+            color: #999;
+            font-size: 0.85rem;
+            margin-top: 10px;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        #previewContainer {
+            display: none;
+            margin-top: 25px;
+            text-align: center;
+        }
+
+        #previewImage {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-container {
+            margin-top: 20px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #4CAF50, #2E7D32);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(76, 175, 80, 0.4);
+        }
+
+        .btn-primary:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #666;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        #resultContainer {
+            display: none;
+            margin-top: 30px;
+            padding: 25px;
+            background: #f5f5f5;
+            border-radius: 15px;
+        }
+
+        .result-title {
+            font-size: 1.2rem;
+            color: #333;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .main-result {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .disease-name {
+            font-size: 1.3rem;
+            color: #1a5f2a;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .confidence-bar-container {
+            background: #e0e0e0;
+            border-radius: 10px;
+            height: 25px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .confidence-bar {
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+
+        .confidence-text {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-weight: 700;
+            color: #333;
+            font-size: 0.9rem;
+        }
+
+        .other-predictions {
+            margin-top: 15px;
+        }
+
+        .other-predictions h4 {
+            color: #666;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+
+        .prediction-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .prediction-label {
+            color: #333;
+            font-size: 0.9rem;
+        }
+
+        .prediction-confidence {
+            color: #666;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4CAF50;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-text {
+            margin-top: 15px;
+            color: #666;
+        }
+
+        .error-message {
+            display: none;
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .healthy {
+            color: #2e7d32 !important;
+        }
+
+        .disease {
+            color: #c62828 !important;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .logo-icon {
+            font-size: 40px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="logo">
+            <span class="logo-icon">🌿</span>
+        </div>
+        <h1>Plant Disease Detector</h1>
+        <p class="subtitle">Upload a leaf image to detect diseases</p>
+
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📷</div>
+            <p class="upload-text">Click or drag & drop an image here</p>
+            <p class="upload-hint">Supports JPG, PNG, JPEG</p>
+            <input type="file" id="fileInput" accept="image/*">
+        </div>
+
+        <div id="previewContainer">
+            <img id="previewImage" alt="Preview">
+            <div class="btn-container">
+                <button class="btn btn-primary" id="predictBtn">Analyze Image</button>
+                <button class="btn btn-secondary" id="clearBtn">Clear</button>
+            </div>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p class="loading-text">Analyzing image...</p>
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+
+        <div id="resultContainer">
+            <h3 class="result-title">Analysis Result</h3>
+            <div class="main-result">
+                <div class="disease-name" id="diseaseName"></div>
+                <div class="confidence-bar-container">
+                    <div class="confidence-bar" id="confidenceBar"></div>
+                    <span class="confidence-text" id="confidenceText"></span>
+                </div>
+            </div>
+            <div class="other-predictions" id="otherPredictions"></div>
+        </div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const previewContainer = document.getElementById('previewContainer');
+        const previewImage = document.getElementById('previewImage');
+        const predictBtn = document.getElementById('predictBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const loading = document.getElementById('loading');
+        const resultContainer = document.getElementById('resultContainer');
+        const errorMessage = document.getElementById('errorMessage');
+
+        let selectedFile = null;
+
+        // Click to upload
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        // Drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        // File input change
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            if (!file.type.startsWith('image/')) {
+                showError('Please select an image file');
+                return;
+            }
+
+            selectedFile = file;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImage.src = e.target.result;
+                previewContainer.style.display = 'block';
+                resultContainer.style.display = 'none';
+                errorMessage.style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Predict button
+        predictBtn.addEventListener('click', async () => {
+            if (!selectedFile) {
+                showError('Please select an image first');
+                return;
+            }
+
+            loading.style.display = 'block';
+            predictBtn.disabled = true;
+            errorMessage.style.display = 'none';
+            resultContainer.style.display = 'none';
+
+            const formData = new FormData();
+            formData.append('image', selectedFile);
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Prediction failed');
+                }
+
+                displayResults(data.prediction);
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                loading.style.display = 'none';
+                predictBtn.disabled = false;
+            }
+        });
+
+        // Clear button
+        clearBtn.addEventListener('click', () => {
+            selectedFile = null;
+            fileInput.value = '';
+            previewContainer.style.display = 'none';
+            resultContainer.style.display = 'none';
+            errorMessage.style.display = 'none';
+            loading.style.display = 'none';
+        });
+
+        function displayResults(prediction) {
+            const diseaseName = document.getElementById('diseaseName');
+            const confidenceBar = document.getElementById('confidenceBar');
+            const confidenceText = document.getElementById('confidenceText');
+            const otherPredictions = document.getElementById('otherPredictions');
+
+            // Format the disease name
+            let formattedName = prediction.label.replace(/_/g, ' ');
+
+            // Check if healthy
+            if (formattedName.toLowerCase().includes('healthy')) {
+                diseaseName.className = 'disease-name healthy';
+            } else {
+                diseaseName.className = 'disease-name disease';
+            }
+
+            diseaseName.textContent = formattedName;
+
+            // Confidence bar
+            const confidence = prediction.confidence * 100;
+            confidenceBar.style.width = confidence + '%';
+            confidenceText.textContent = confidence.toFixed(1) + '%';
+
+            // Other predictions
+            otherPredictions.innerHTML = '<h4>Other Possibilities:</h4>';
+            prediction.all_predictions.slice(1).forEach(p => {
+                const item = document.createElement('div');
+                item.className = 'prediction-item';
+                item.innerHTML = `
+                    <span class="prediction-label">${p.label.replace(/_/g, ' ')}</span>
+                    <span class="prediction-confidence">${(p.confidence * 100).toFixed(1)}%</span>
+                `;
+                otherPredictions.appendChild(item);
+            });
+
+            resultContainer.style.display = 'block';
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            resultContainer.style.display = 'none';
+        }
+    </script>
+</body>
+
+</html>
